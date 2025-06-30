@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using theupskilzapi.Services;
 using theUpSkilzAPI.Data;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -18,19 +19,31 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddSingleton<SmsService>();
+builder.Services.AddHttpClient();
+builder.Services.AddScoped<RazorpayService>();
 
 
 // 👇 Add CORS policy here
+//builder.Services.AddCors(options =>
+//{
+//    options.AddPolicy("AllowFrontend", policy =>
+//    {
+//        policy.WithOrigins(
+//            "https://quiet-gingersnap-b636eb.netlify.app",
+//            "https://lovely-strudel-1bd59b.netlify.app"
+//        )
+//        .AllowAnyHeader()
+//        .AllowAnyMethod();
+//    });
+//});
+
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowFrontend", policy =>
+    options.AddPolicy("AllowAll", builder =>
     {
-        policy.WithOrigins(
-            "https://quiet-gingersnap-b636eb.netlify.app",
-            "https://lovely-strudel-1bd59b.netlify.app"
-        )
-        .AllowAnyHeader()
-        .AllowAnyMethod();
+        builder.AllowAnyOrigin()
+               .AllowAnyMethod()
+               .AllowAnyHeader();
     });
 });
 
