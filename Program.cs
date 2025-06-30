@@ -25,11 +25,15 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
     {
-        policy.WithOrigins("https://quiet-gingersnap-b636eb.netlify.app/")
-              .AllowAnyHeader()
-              .AllowAnyMethod();
+        policy.WithOrigins(
+            "https://quiet-gingersnap-b636eb.netlify.app",
+            "https://lovely-strudel-1bd59b.netlify.app"
+        )
+        .AllowAnyHeader()
+        .AllowAnyMethod();
     });
 });
+
 
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
