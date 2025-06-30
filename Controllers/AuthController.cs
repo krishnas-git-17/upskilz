@@ -4,6 +4,8 @@ using theUpSkilzAPI.Data;
 using theUpSkilzAPI.Dtos;
 using theUpSkilzAPI.Models;
 using theUpSkilzAPI.Services;
+using theUpSkilzAPI.Helpers;
+
 
 [ApiController]
 [Route("api/[controller]")]
@@ -66,25 +68,27 @@ public class AuthController : ControllerBase
     [HttpPost("send-otp")]
     public async Task<IActionResult> SendOtp([FromBody] string phone)
     {
-        var user = _context.Users.FirstOrDefault(u => u.PhoneNumber == phone);
+        var normalizedPhone = PhoneUtils.NormalizePhone(phone);
+        var user = _context.Users.FirstOrDefault(u => u.PhoneNumber == normalizedPhone);
         if (user == null)
             return NotFound("Phone number not registered.");
 
         var otp = new Random().Next(100000, 999999).ToString();
-        OtpStore.SetOtp(phone, otp);
+        OtpStore.SetOtp(normalizedPhone, otp);
 
-        await _smsService.SendOtp(phone, otp);
+        await _smsService.SendOtp(normalizedPhone, otp);
         return Ok("OTP sent to your mobile number.");
     }
 
     [HttpPost("reset-password")]
     public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordDto dto)
     {
-        var savedOtp = OtpStore.GetOtp(dto.PhoneNumber);
+        var normalizedPhone = PhoneUtils.NormalizePhone(dto.PhoneNumber);
+        var savedOtp = OtpStore.GetOtp(normalizedPhone);
         if (savedOtp != dto.Otp)
             return BadRequest("Invalid OTP.");
 
-        var user = _context.Users.FirstOrDefault(u => u.PhoneNumber == dto.PhoneNumber);
+        var user = _context.Users.FirstOrDefault(u => u.PhoneNumber == normalizedPhone);
         if (user == null)
             return NotFound("User not found.");
 
@@ -92,7 +96,8 @@ public class AuthController : ControllerBase
         _context.Users.Update(user);
         await _context.SaveChangesAsync();
 
-        OtpStore.ClearOtp(dto.PhoneNumber);
+        OtpStore.ClearOtp(normalizedPhone);
         return Ok("Password reset successfully.");
     }
+
 }
