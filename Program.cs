@@ -3,43 +3,36 @@ using theUpSkilzAPI.Data;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddCors(options =>
+// ✅ Port binding for Render
+var port = Environment.GetEnvironmentVariable("PORT") ?? "5000";
+builder.WebHost.ConfigureKestrel(serverOptions =>
 {
-    options.AddPolicy("AllowAll", builder =>
-    {
-        builder.AllowAnyOrigin()
-               .AllowAnyMethod()
-               .AllowAnyHeader();
-    });
+    serverOptions.ListenAnyIP(int.Parse(port));
 });
 
-// Add services
-builder.Services.AddControllers();
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
-builder.Services.AddSingleton<SmsService>();
-
-
-// 👇 Add CORS policy here
+// CORS, controllers, and services
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
     {
-        policy.WithOrigins("http://localhost:3000")
+        policy.WithOrigins("http://localhost:3000", "https://your-frontend.onrender.com") // adjust as needed
               .AllowAnyHeader()
               .AllowAnyMethod();
     });
 });
+
+builder.Services.AddControllers();
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+builder.Services.AddSingleton<SmsService>();
 
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 var app = builder.Build();
 
-// 👇 Enable CORS here
+// Middleware
 app.UseCors("AllowFrontend");
-app.UseCors("AllowAll");
-
 
 if (app.Environment.IsDevelopment())
 {
@@ -50,5 +43,4 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 app.UseAuthorization();
 app.MapControllers();
-
 app.Run();
