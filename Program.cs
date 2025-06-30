@@ -36,6 +36,7 @@ app.UseCors("AllowFrontend");
 
 if (app.Environment.IsDevelopment())
 {
+    app.UseDeveloperExceptionPage();
     app.UseSwagger();
     app.UseSwaggerUI();
 }
