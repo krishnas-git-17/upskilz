@@ -4,17 +4,18 @@ using theUpSkilzAPI.Data;
 
 var builder = WebApplication.CreateBuilder(args);
 
+
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowAll", builder =>
+    options.AddPolicy("AllowAll", policy =>
     {
-        builder.AllowAnyOrigin()
-               .AllowAnyMethod()
-               .AllowAnyHeader();
+        policy
+            .AllowAnyOrigin()
+            .AllowAnyMethod()
+            .AllowAnyHeader();
     });
 });
 
-// Add services
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -22,39 +23,13 @@ builder.Services.AddSingleton<SmsService>();
 builder.Services.AddHttpClient();
 builder.Services.AddScoped<RazorpayService>();
 
-
-// 👇 Add CORS policy here
-//builder.Services.AddCors(options =>
-//{
-//    options.AddPolicy("AllowFrontend", policy =>
-//    {
-//        policy.WithOrigins(
-//            "https://quiet-gingersnap-b636eb.netlify.app",
-//            "https://lovely-strudel-1bd59b.netlify.app"
-//        )
-//        .AllowAnyHeader()
-//        .AllowAnyMethod();
-//    });
-//});
-
-builder.Services.AddCors(options =>
-{
-    options.AddPolicy("AllowAll", builder =>
-    {
-        builder.AllowAnyOrigin()
-               .AllowAnyMethod()
-               .AllowAnyHeader();
-    });
-});
-
-
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 var app = builder.Build();
 
-// 👇 Enable CORS here
-app.UseCors("AllowFrontend");
+// ✅ Apply the correct CORS policy
+app.UseCors("AllowAll");
 
 if (app.Environment.IsDevelopment())
 {
