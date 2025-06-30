@@ -100,4 +100,16 @@ public class AuthController : ControllerBase
         return Ok("Password reset successfully.");
     }
 
+    [HttpPost("get-phone-by-email")]
+    public IActionResult GetPhoneByEmail([FromBody] EmailDto dto)
+    {
+        var user = _context.Users.FirstOrDefault(u => u.Email.ToLower() == dto.Email.ToLower());
+
+        if (user == null || string.IsNullOrWhiteSpace(user.PhoneNumber))
+            return NotFound(new { message = "No phone number associated with this email." });
+
+        return Ok(new { phoneNumber = user.PhoneNumber });
+    }
+
+
 }
