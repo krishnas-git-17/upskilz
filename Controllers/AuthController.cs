@@ -5,6 +5,13 @@ using theUpSkilzAPI.Dtos;
 using theUpSkilzAPI.Models;
 using theUpSkilzAPI.Services;
 using theUpSkilzAPI.Helpers;
+using Microsoft.EntityFrameworkCore;
+using System.IdentityModel.Tokens.Jwt;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
+using System.Security.Claims;
+using BCrypt.Net;
+
 
 
 [ApiController]
@@ -14,12 +21,15 @@ public class AuthController : ControllerBase
     private readonly AppDbContext _context;
     private readonly SmsService _smsService;
     private readonly JwtService _jwtService;
+    private readonly IConfiguration _config;
 
-    public AuthController(AppDbContext context, SmsService smsService, JwtService jwtService)
+
+    public AuthController(AppDbContext context, SmsService smsService, JwtService jwtService , IConfiguration config)
     {
         _context = context;
         _smsService = smsService;
         _jwtService = jwtService;
+        _config = config;
     }
    
     [HttpPost("register")]
@@ -47,27 +57,43 @@ public class AuthController : ControllerBase
 
 
     [HttpPost("login")]
-    public IActionResult Login(LoginDto dto)
+    public async Task<IActionResult> Login([FromBody] LoginDto loginDto)
     {
-        var user = _context.Users.FirstOrDefault(u => u.Email == dto.Email);
-        if (user == null)
-            return NotFound(new { message = "User not found" });
+        var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == loginDto.Email);
 
-        var isValid = AuthService.VerifyPassword(dto.Password, user.PasswordHash);
-        if (!isValid)
-            return BadRequest(new { message = "Invalid credentials" });
-            string token = _jwtService.GenerateJwtToken(user.Email, user.Role);
+        if (user == null || !BCrypt.Net.BCrypt.Verify(loginDto.Password, user.PasswordHash))
+        {
+            return Unauthorized("Invalid email or password");
+        }
 
+        var tokenHandler = new JwtSecurityTokenHandler();
+        var key = Encoding.ASCII.GetBytes(_config["JwtSettings:SecretKey"]);
+
+        var tokenDescriptor = new SecurityTokenDescriptor
+        {
+            Subject = new ClaimsIdentity(new[]
+            {
+            new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
+            new Claim(ClaimTypes.Email, user.Email),
+            new Claim(ClaimTypes.Role, user.Role)
+        }),
+            Expires = DateTime.UtcNow.AddDays(7),
+            SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
+        };
+
+        var token = tokenHandler.CreateToken(tokenDescriptor);
+        var tokenString = tokenHandler.WriteToken(token);
 
         return Ok(new
         {
             message = "Login successful",
+            token = tokenString,
             user = new
             {
-                user.Id,
-                user.Username,
-                user.Email,
-                user.Role // 👈 This will be 'admin' if email matched
+                id = user.Id,
+                email = user.Email,
+                username = user.Username,
+                role = user.Role
             }
         });
     }
