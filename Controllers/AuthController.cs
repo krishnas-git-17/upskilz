@@ -145,5 +145,21 @@ public class AuthController : ControllerBase
         return Ok(new { phoneNumber = user.PhoneNumber });
     }
 
+    [HttpPost("promote-admin")]
+    public async Task<IActionResult> PromoteToAdmin()
+    {
+        var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == "krishnakothapalle@gmail.com");
+
+        if (user == null)
+        {
+            return NotFound("User not found.");
+        }
+        user.Role = "admin";
+        await _context.SaveChangesAsync();
+
+        return Ok("User promoted to admin.");
+    }
+
+
 
 }
