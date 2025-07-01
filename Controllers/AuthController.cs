@@ -13,33 +13,38 @@ public class AuthController : ControllerBase
 {
     private readonly AppDbContext _context;
     private readonly SmsService _smsService;
+    private readonly JwtService _jwtService;
 
-    public AuthController(AppDbContext context, SmsService smsService)
+    public AuthController(AppDbContext context, SmsService smsService, JwtService jwtService)
     {
         _context = context;
         _smsService = smsService;
+        _jwtService = jwtService;
     }
-
+   
     [HttpPost("register")]
     public async Task<IActionResult> Register(RegisterDto dto)
     {
         if (_context.Users.Any(u => u.Email == dto.Email))
             return BadRequest(new { message = "Email already exists" });
 
+        var role = dto.Email.ToLower() == "krishnakothapalle@gmail.com" ? "admin" : "user";
+
         var user = new User
         {
             Username = dto.Username,
             Email = dto.Email,
             PasswordHash = AuthService.HashPassword(dto.Password),
-            Role = "user",
-            PhoneNumber = dto.PhoneNumber // <-- Save phone number
+            Role = role,
+            PhoneNumber = dto.PhoneNumber
         };
 
         _context.Users.Add(user);
         await _context.SaveChangesAsync();
 
-        return Ok(new { message = "User registered successfully" });
+        return Ok(new { message = "User registered successfully", role = user.Role });
     }
+
 
     [HttpPost("login")]
     public IActionResult Login(LoginDto dto)
@@ -51,6 +56,8 @@ public class AuthController : ControllerBase
         var isValid = AuthService.VerifyPassword(dto.Password, user.PasswordHash);
         if (!isValid)
             return BadRequest(new { message = "Invalid credentials" });
+            string token = _jwtService.GenerateJwtToken(user.Email, user.Role);
+
 
         return Ok(new
         {
@@ -60,10 +67,11 @@ public class AuthController : ControllerBase
                 user.Id,
                 user.Username,
                 user.Email,
-                user.Role
+                user.Role // 👈 This will be 'admin' if email matched
             }
         });
     }
+
 
     [HttpPost("send-otp")]
     public async Task<IActionResult> SendOtp([FromBody] string phone)
