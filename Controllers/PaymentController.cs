@@ -4,8 +4,8 @@ using theupskilzapi.Services;
 
 namespace theupskilzapi.Controllers
 {
-    [Route("api/[controller]")]
     [ApiController]
+    [Route("api/[controller]")]
     public class PaymentController : ControllerBase
     {
         private readonly RazorpayService _razorpayService;
@@ -16,10 +16,17 @@ namespace theupskilzapi.Controllers
         }
 
         [HttpPost("create-order")]
-        public async Task<IActionResult> CreateOrder([FromBody] PaymentRequestDto dto)
+        public async Task<IActionResult> CreateOrder([FromBody] PaymentRequestDto request)
         {
-            var response = await _razorpayService.CreateOrderAsync(dto);
-            return Ok(response);
+            try
+            {
+                var result = await _razorpayService.CreateOrderAsync(request);
+                return Ok(new { success = true, order = result });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { success = false, message = ex.Message });
+            }
         }
     }
 }
